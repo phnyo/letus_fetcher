@@ -1,0 +1,8 @@
+*.ics
+*.json
+session_id.py
+*.log
+calendar_venv
+*/__pycache__
+__pycache__
+
