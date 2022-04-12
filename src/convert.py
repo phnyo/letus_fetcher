@@ -1,4 +1,4 @@
-import datetime, json, os
+import datetime, json, os, re
 
 def convert_tztodate(tz):
     year = int(tz[0:4]) 
@@ -16,14 +16,25 @@ def event2dict(event):
     event_dict = dict()
     for d in description:
         dl = d.split(':')
-        if len(dl) == 1:
+        if len(dl) != 2:
             continue
         key, value = d.split(':')
-        if key in {'SUMMARY', 'DTEND', 'CATEGORIES'}:
-            if key == 'DTEND':
+        print(key, value)
+        if key in {'SUMMARY', 'DTEND', 'CATEGORIES', 'DESCRIPTION'}:
+            if key == 'CATEGORIES':
+                course_number = re.split('\(|（', value)
+                if course_number[1].rstrip(')').rstrip('）').isdigit() == False:
+                    return {}
+                event_dict[key] = course_number[0].rstrip('　')
+
+            elif key == 'DTEND':
                 event_dict[key] = convert_tztodate(value).isoformat()
             else:
                 event_dict[key] = value
+    summary_flg = not 'SUMMARY' in event_dict or event_dict['SUMMARY'] == ''
+    desc_flg = not 'DESCRIPTION' in event_dict or event_dict['DESCRIPTION'] == ''
+    if summary_flg and desc_flg:
+        return {}
     return event_dict
 
 def convert():
@@ -33,8 +44,15 @@ def convert():
         print('[MIS] read tmpcalendar.ics')
         rawstr = fi.read()
         rawdata = rawstr.split('BEGIN:')[2:]
-        for i, event in enumerate(rawdata):
-            ret_dict[i] = event2dict(event)
+        ind = 0
+        for event in rawdata:
+            tmp_dict= event2dict(event)
+            if tmp_dict:
+                ret_dict[ind] = tmp_dict
+            ind += 1
+    for event in ret_dict:
+        print(ret_dict[event])
+
     with open('./calendar.json', 'w') as fo:
         print('[MIS] write calendar.json')
         fo.write(json.dumps(ret_dict, indent=4))
@@ -42,3 +60,5 @@ def convert():
     print('[MIS] delete tmpcalendar.ics')
     print('[FUNCTION] end convert')
 
+if __name__ == "__main__":
+    convert()
