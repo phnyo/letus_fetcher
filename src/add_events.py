@@ -62,6 +62,10 @@ def cred_and_post():
                 if hashval_match_flg == True:
                     print('[FUNCTION] hashval matched. end cred_and_post')
                     return
+                
+                else 
+                    with open('./dict_hashval', 'w') as fo:
+                        fo.write(cat_summary_hashval)
 
         # else fetch the title list
         now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
@@ -99,3 +103,5 @@ def cred_and_post():
     except HttpError as error:
         print('An error occurred: %s' % error)
 
+if __name__ == "__main__":
+    cred_and_post()
