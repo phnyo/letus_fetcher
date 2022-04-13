@@ -21,13 +21,17 @@ def event2dict(event):
             value = kv_list[1]
         else:
             continue
-        if key in {'SUMMARY', 'DTEND', 'CATEGORIES', 'DESCRIPTION'}:
+        if key in {'SUMMARY', 'DTEND', 'CATEGORIES'}: 
             if key == 'CATEGORIES':
                 course_number = re.split('\(|（', value)
                 if course_number[1].rstrip(')').rstrip('）').isdigit() == False:
                     return {}
                 event_dict[key] = course_number[0].rstrip('　').rstrip(' ')
 
+            elif key == 'SUMMARY':
+                value = value[1:]
+                value = re.sub('」.*|（.*|\(.*', '', value)
+                event_dict[key] = value
             elif key == 'DTEND':
                 event_dict[key] = convert_tztodate(value).isoformat()
             else:
@@ -53,7 +57,7 @@ def convert():
     with codecs.open('./calendar.json', 'w', 'utf-8') as fo:
         print('[MIS] write calendar.json')
         fo.write(json.dumps(ret_dict, indent=4, ensure_ascii=False))
-    os.remove('./tmpcalendar.ics')    
+    #os.remove('./tmpcalendar.ics')    
     print('[MIS] delete tmpcalendar.ics')
     print('[FUNCTION] end convert')
 
