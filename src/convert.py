@@ -1,4 +1,9 @@
-import datetime, json, os, re, codecs
+import datetime
+import json
+import os 
+import re
+import codecs
+import hashlib
 
 def convert_tztodate(tz):
     year = int(tz[0:4]) 
@@ -14,6 +19,7 @@ def convert_tztodate(tz):
 def event2dict(event):
     description = event.split('\n')[2:]
     event_dict = dict()
+
     for i, data in enumerate(description):
         kv_list = data.split(':')
         key = kv_list[0]
@@ -21,17 +27,19 @@ def event2dict(event):
             value = kv_list[1]
         else:
             continue
-        if key in {'SUMMARY', 'DTEND', 'CATEGORIES', 'DESCRIPTION'}:
+        if key in {'SUMMARY', 'DTEND', 'CATEGORIES'}: 
             if key == 'CATEGORIES':
                 course_number = re.split('\(|（', value)
                 if course_number[1].rstrip(')').rstrip('）').isdigit() == False:
                     return {}
                 event_dict[key] = course_number[0].rstrip('　').rstrip(' ')
-
-            elif key == 'DTEND':
-                event_dict[key] = convert_tztodate(value).isoformat()
-            else:
+            if key == 'SUMMARY':
+                value = value[1:]
+                value = re.sub('」.*|（.*|\(.*', '', value)
                 event_dict[key] = value
+            if key == 'DTEND':
+                event_dict[key] = convert_tztodate(value).isoformat()
+
     return event_dict
 
 def convert():
@@ -48,12 +56,24 @@ def convert():
                 ret_dict[ind] = tmp_dict
                 ind += 1
     for event in ret_dict:
-        print(ret_dict[event])
+        ret_dict[event]['SUMMARY'] = '【' + ret_dict[event]['CATEGORIES'] + '】' + ret_dict[event]['SUMMARY']
+        ret_dict[event].pop('CATEGORIES')
 
+    for event in ret_dict:
+        print(ret_dict[event])
+    
+    with open('./dict_hashval', 'w') as fo:
+        print('[MIS] calculate hash from dict')
+        cat_summary = ""
+        for summary in ret_dict:
+            cat_summary.join(ret_dict[summary]['SUMMARY'])
+        dict_hash = hashlib.md5(cat_summary.encode()).hexdigest()
+        fo.write(dict_hash)
+        print(f"[MIS] write hash value, {dict_hash}")
     with codecs.open('./calendar.json', 'w', 'utf-8') as fo:
         print('[MIS] write calendar.json')
         fo.write(json.dumps(ret_dict, indent=4, ensure_ascii=False))
-    os.remove('./tmpcalendar.ics')    
+    #os.remove('./tmpcalendar.ics')    
     print('[MIS] delete tmpcalendar.ics')
     print('[FUNCTION] end convert')
 
