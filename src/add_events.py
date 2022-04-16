@@ -39,53 +39,55 @@ def cred_and_post():
     try:
         print('[MIS] trying with credential')
         service = build('calendar', 'v3', credentials=creds)
-        
+
+        hash_match_bool = False
         # Read the json file
         with open('./calendar.json', 'r') as fi:
             print('[MIS] read calendar.json')
             calendar_data_dict = json.load(fi)
-            
-            hashval_match_flg = False
+
             print('[MIS] calculate hashval for summary in calendar.json')
             cat_summary = ""
             for num in calendar_data_dict:
                 cat_summary.join(calendar_data_dict[num]['SUMMARY'])
-            cat_summary_hashval = hashlib.md5(cat_summary.encode()).hexdigest()
-            
+            dict_hash = hashlib.md5(cat_summary.encode()).hexdigest()
+
             print('[MIS] compare hashval')
             if os.path.exists('./dict_hashval'):
                 with open('./dict_hashval', 'r') as fi:
-                    prev_hashval = fi.read()
-                    if cat_summary_hashval == prev_hashval:
-                        hashval_match_flg = True
+                    prev_hash = fi.read()
+                    if prev_hash == dict_hash:
+                        hash_match_bool = True
 
-                if hashval_match_flg == True:
+                if hash_match_bool is True:
                     print('[FUNCTION] hashval matched. end cred_and_post')
                     return
-                
-                else 
+
+                else:
                     with open('./dict_hashval', 'w') as fo:
-                        fo.write(cat_summary_hashval)
+                        fo.write(dict_hash)
 
         # else fetch the title list
-        now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-        monthLater = datetime.datetime.utcnow() + datetime.timedelta(days=31)
+        now = datetime.datetime.now().isoformat() + 'Z'
+        print(f'[MIS] time now {now}')
+        monthLater = datetime.datetime.now() + datetime.timedelta(days=31)
         monthLater = monthLater.isoformat() + 'Z'
         events_list = service.events().list(calendarId='primary', timeMin=now, timeMax=monthLater).execute()
-        
+
         # if an event is not included, then post
         events_set = set()
         for event in events_list['items']:
             events_set.add(event['summary'])
 
         for num in calendar_data_dict:
-            if not calendar_data_dict[num]['SUMMARY'] in events_set:
+            if not calendar_data_dict[num]['SUMMARY'] in events_set and calendar_data_dict[num]['DTEND'] > now:
+                print(f'[POST] {calendar_data_dict[num]["SUMMARY"]} posted to the calendar')
                 end_date_str = re.sub('T', ' ', calendar_data_dict[num]['DTEND'][:-9])
                 end_date = datetime.datetime.strptime(end_date_str, "%Y-%m-%d %H:%M")
                 start_date = end_date + datetime.timedelta(hours=-3)
-                
+
                 print(start_date, end_date)
-                
+
                 insert_result = service.events().insert(calendarId='primary',
                         body= {
                             "summary": calendar_data_dict[num]['SUMMARY'],
@@ -95,7 +97,7 @@ def cred_and_post():
                             "end": {
                                 "dateTime": datetime.datetime.strftime(end_date, "%Y-%m-%dT%H:%M:00+09:00")
                             },
-                            
+
                         }
                     ).execute()
                 print(insert_result)

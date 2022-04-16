@@ -27,7 +27,7 @@ def event2dict(event):
             value = kv_list[1]
         else:
             continue
-        if key in {'SUMMARY', 'DTEND', 'CATEGORIES'}: 
+        if key in {'SUMMARY', 'DTEND', 'CATEGORIES'}:
             if key == 'CATEGORIES':
                 course_number = re.split('\(|（', value)
                 if course_number[1].rstrip(')').rstrip('）').isdigit() == False:
@@ -35,7 +35,7 @@ def event2dict(event):
                 event_dict[key] = course_number[0].rstrip('　').rstrip(' ')
             if key == 'SUMMARY':
                 value = value[1:]
-                value = re.sub('」.*|（.*|\(.*', '', value)
+                value = re.sub('.+」.*|.+（.*|.+\(.*', '', value)
                 event_dict[key] = value
             if key == 'DTEND':
                 event_dict[key] = convert_tztodate(value).isoformat()
@@ -61,20 +61,11 @@ def convert():
 
     for event in ret_dict:
         print(ret_dict[event])
-    
-    if not os.path.exists('./dict_hashval'):
-        with open('./dict_hashval', 'w') as fo:
-            print('[MIS] calculate hash from dict')
-            cat_summary = ""
-            for summary in ret_dict:
-                cat_summary.join(ret_dict[summary]['SUMMARY'])
-            dict_hash = hashlib.md5(cat_summary.encode()).hexdigest()
-            fo.write(dict_hash)
-            print(f"[MIS] write hash value, {dict_hash}")
+
     with codecs.open('./calendar.json', 'w', 'utf-8') as fo:
         print('[MIS] write calendar.json')
         fo.write(json.dumps(ret_dict, indent=4, ensure_ascii=False))
-    #os.remove('./tmpcalendar.ics')    
+    os.remove('./tmpcalendar.ics')    
     print('[MIS] delete tmpcalendar.ics')
     print('[FUNCTION] end convert')
 

@@ -36,7 +36,7 @@ def scrape():
 
         #エクスポートオプションの指定
         driver.find_element(by=By.ID, value="id_events_exportevents_all").click()
-        driver.find_element(by=By.ID, value="id_period_timeperiod_monthnow").click()
+        driver.find_element(by=By.ID, value="id_period_timeperiod_recentupcoming").click()
         #driver.find_element(by=By.ID, value="id_export").click()
         driver.find_element(by=By.ID, value="id_generateurl").click()
         
